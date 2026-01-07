@@ -1,0 +1,13 @@
+# Netlify configuration for ECO-MARKET
+
+[build]
+  # Build command for Vite
+  command = "npm run build"
+  # Output directory for Vite build
+  publish = "dist"
+
+# Redirect all routes to index.html for SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
