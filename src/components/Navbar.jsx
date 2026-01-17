@@ -22,7 +22,8 @@ import {
   Package,
   DollarSign,
   ShoppingBag,
-  Plus
+  Plus,
+  MapPin
 } from 'lucide-react'
 
 function Navbar() {
@@ -262,6 +263,15 @@ function Navbar() {
           >
             <HelpCircle size={20} />
             <span>Help</span>
+          </Link>
+
+          <Link 
+            to="/map" 
+            className={`nav-link ${isActive('/map') ? 'active' : ''}`}
+            onClick={() => setShowMobileMenu(false)}
+          >
+            <MapPin size={20} />
+            <span>Map</span>
           </Link>
         </div>
 

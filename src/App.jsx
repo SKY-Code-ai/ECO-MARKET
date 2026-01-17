@@ -24,6 +24,7 @@ import EliteBuyerPage from './pages/EliteBuyerPage'
 import EliteSellerPage from './pages/EliteSellerPage'
 import UserProfilePage from './pages/UserProfilePage'
 import MyOrdersPage from './pages/MyOrdersPage'
+import MapPage from './pages/MapPage'
 
 
 // Protected Route Component
@@ -272,6 +273,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <UserProfilePage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/map" 
+            element={
+              <ProtectedRoute>
+                <MapPage />
               </ProtectedRoute>
             } 
           />
