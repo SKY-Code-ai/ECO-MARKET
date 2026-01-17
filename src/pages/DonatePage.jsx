@@ -66,10 +66,35 @@ function DonatePage() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    
+    // Save donation to localStorage for map display
+    const newDonation = {
+      id: Date.now(),
+      type: 'donate',
+      name: formData.itemName,
+      category: formData.category,
+      condition: formData.condition,
+      location: formData.address || 'Unknown',
+      description: formData.description,
+      quantity: formData.quantity,
+      pickupMethod: formData.pickupMethod,
+      createdAt: new Date().toISOString(),
+      user: {
+        name: user?.name || 'Anonymous',
+        avatar: '💚'
+      }
+    }
+    
+    // Get existing listings and add new one
+    const existingListings = JSON.parse(localStorage.getItem('eco_market_listings') || '[]')
+    existingListings.push(newDonation)
+    localStorage.setItem('eco_market_listings', JSON.stringify(existingListings))
+    
     // Mock submission
     addEcoPoints(50)
     setSubmitted(true)
   }
+
 
   const impactStats = [
     { value: '45K+', label: 'Items Donated', icon: Gift },

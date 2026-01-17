@@ -11,8 +11,10 @@ import {
   X,
   ChevronDown,
   Leaf,
-  TrendingUp
+  TrendingUp,
+  Package
 } from 'lucide-react'
+
 
 // Indian cities with coordinates
 const cityCoordinates = {
@@ -89,6 +91,8 @@ const getTypeColor = (type) => {
     case 'donator': return '#22c55e'
     case 'buyer': return '#3b82f6'
     case 'seller': return '#f59e0b'
+    case 'sell': return '#8b5cf6'  // Purple for items for sale
+    case 'donate': return '#ec4899' // Pink for donations
     default: return '#6b7280'
   }
 }
@@ -98,6 +102,8 @@ const getTypeLabel = (type) => {
     case 'donator': return 'Donator'
     case 'buyer': return 'Buyer'
     case 'seller': return 'Seller'
+    case 'sell': return 'For Sale'
+    case 'donate': return 'Donation'
     default: return type
   }
 }
@@ -119,9 +125,38 @@ function MapPage() {
   const [filters, setFilters] = useState({
     donators: true,
     buyers: true,
-    sellers: true
+    sellers: true,
+    items: true  // New filter for listed items
   })
   const [selectedCity, setSelectedCity] = useState('all')
+  const [listedItems, setListedItems] = useState([])
+
+  // Load listed items from localStorage
+  useEffect(() => {
+    const loadListings = () => {
+      const listings = JSON.parse(localStorage.getItem('eco_market_listings') || '[]')
+      setListedItems(listings)
+    }
+    loadListings()
+    
+    // Listen for storage changes
+    window.addEventListener('storage', loadListings)
+    return () => window.removeEventListener('storage', loadListings)
+  }, [])
+
+  // Helper function to extract city from location string
+  const extractCity = (location) => {
+    if (!location) return null
+    const locationLower = location.toLowerCase()
+    for (const city of Object.keys(cityCoordinates)) {
+      if (locationLower.includes(city.toLowerCase())) {
+        return city
+      }
+    }
+    // Default to a random city if no match found
+    const cities = Object.keys(cityCoordinates)
+    return cities[Math.floor(Math.random() * cities.length)]
+  }
 
   // Filter users based on type and city
   const filteredUsers = useMemo(() => {
@@ -139,13 +174,38 @@ function MapPage() {
     }))
   }, [filters, selectedCity])
 
+  // Filter listed items
+  const filteredItems = useMemo(() => {
+    if (!filters.items) return []
+    
+    return listedItems.map(item => {
+      const city = extractCity(item.location)
+      return {
+        ...item,
+        city,
+        coordinates: city ? cityCoordinates[city] : null
+      }
+    }).filter(item => {
+      if (!item.coordinates) return false
+      const cityMatch = selectedCity === 'all' || item.city === selectedCity
+      return cityMatch
+    })
+  }, [listedItems, filters.items, selectedCity])
+
+  // Combine users and items for map markers
+  const allMapMarkers = useMemo(() => {
+    return [...filteredUsers, ...filteredItems]
+  }, [filteredUsers, filteredItems])
+
   // Get counts
   const counts = useMemo(() => ({
     donators: mockUsers.filter(u => u.type === 'donator').length,
     buyers: mockUsers.filter(u => u.type === 'buyer').length,
     sellers: mockUsers.filter(u => u.type === 'seller').length,
-    total: mockUsers.length
-  }), [])
+    items: listedItems.length,
+    total: mockUsers.length + listedItems.length
+  }), [listedItems])
+
 
   // Initialize map
   useEffect(() => {
@@ -168,7 +228,7 @@ function MapPage() {
     }
   }, [])
 
-  // Update markers when filtered users change
+  // Update markers when filtered data changes
   useEffect(() => {
     if (!mapInstanceRef.current) return
 
@@ -176,42 +236,79 @@ function MapPage() {
     markersRef.current.forEach(marker => marker.remove())
     markersRef.current = []
 
-    // Add new markers
-    filteredUsers.forEach(user => {
-      const marker = L.marker(user.coordinates, {
-        icon: createMarkerIcon(getTypeColor(user.type))
+    // Add new markers for all items
+    allMapMarkers.forEach(item => {
+      if (!item.coordinates) return
+      
+      const marker = L.marker(item.coordinates, {
+        icon: createMarkerIcon(getTypeColor(item.type))
       })
       
-      const popupContent = `
-        <div style="min-width: 180px; font-family: inherit;">
-          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-            <span style="font-size: 1.8rem;">${user.avatar}</span>
-            <div>
-              <div style="font-weight: 600; font-size: 14px;">${user.name}</div>
-              <span style="
-                display: inline-block;
-                padding: 2px 8px;
-                border-radius: 20px;
-                font-size: 11px;
-                font-weight: 600;
-                background: ${getTypeColor(user.type)}20;
-                color: ${getTypeColor(user.type)};
-              ">${getTypeLabel(user.type)}</span>
+      let popupContent = ''
+      
+      // Check if it's a listed item (sell/donate) or a user
+      if (item.type === 'sell' || item.type === 'donate') {
+        // Listed item popup
+        popupContent = `
+          <div style="min-width: 200px; font-family: inherit;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+              <span style="font-size: 1.8rem;">${item.type === 'sell' ? '🛒' : '🎁'}</span>
+              <div>
+                <div style="font-weight: 600; font-size: 14px;">${item.name}</div>
+                <span style="
+                  display: inline-block;
+                  padding: 2px 8px;
+                  border-radius: 20px;
+                  font-size: 11px;
+                  font-weight: 600;
+                  background: ${getTypeColor(item.type)}20;
+                  color: ${getTypeColor(item.type)};
+                ">${getTypeLabel(item.type)}</span>
+              </div>
+            </div>
+            <div style="font-size: 13px; color: #666;">
+              <div style="margin-bottom: 4px;">📍 ${item.city || item.location}</div>
+              <div style="margin-bottom: 4px;">📦 ${item.category}</div>
+              ${item.type === 'sell' ? `<div style="margin-bottom: 4px; font-weight: 600; color: #22c55e;">💰 ₹${item.price?.toLocaleString() || 0}</div>` : ''}
+              <div style="margin-bottom: 4px;">👤 ${item.user?.name || 'Anonymous'}</div>
+              <div style="font-size: 11px; color: #999;">Listed: ${new Date(item.createdAt).toLocaleDateString()}</div>
             </div>
           </div>
-          <div style="font-size: 13px; color: #666;">
-            <div style="margin-bottom: 4px;">📍 ${user.city}</div>
-            <div style="margin-bottom: 4px;">📊 ${getStatLabel(user)}</div>
-            <div>🌿 ${user.ecoPoints.toLocaleString()} Eco Points</div>
+        `
+      } else {
+        // User popup (donator, buyer, seller)
+        popupContent = `
+          <div style="min-width: 180px; font-family: inherit;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+              <span style="font-size: 1.8rem;">${item.avatar}</span>
+              <div>
+                <div style="font-weight: 600; font-size: 14px;">${item.name}</div>
+                <span style="
+                  display: inline-block;
+                  padding: 2px 8px;
+                  border-radius: 20px;
+                  font-size: 11px;
+                  font-weight: 600;
+                  background: ${getTypeColor(item.type)}20;
+                  color: ${getTypeColor(item.type)};
+                ">${getTypeLabel(item.type)}</span>
+              </div>
+            </div>
+            <div style="font-size: 13px; color: #666;">
+              <div style="margin-bottom: 4px;">📍 ${item.city}</div>
+              <div style="margin-bottom: 4px;">📊 ${getStatLabel(item)}</div>
+              <div>🌿 ${item.ecoPoints?.toLocaleString() || 0} Eco Points</div>
+            </div>
           </div>
-        </div>
-      `
+        `
+      }
       
       marker.bindPopup(popupContent)
       marker.addTo(mapInstanceRef.current)
       markersRef.current.push(marker)
     })
-  }, [filteredUsers])
+  }, [allMapMarkers])
+
 
   return (
     <div className="map-page">
@@ -250,11 +347,11 @@ function MapPage() {
               <span className="stat-label">Sellers</span>
             </div>
           </div>
-          <div className="stat-card total">
-            <Users size={24} />
+          <div className="stat-card items">
+            <Package size={24} />
             <div className="stat-info">
-              <span className="stat-value">{counts.total}</span>
-              <span className="stat-label">Total Users</span>
+              <span className="stat-value">{counts.items}</span>
+              <span className="stat-label">Items Listed</span>
             </div>
           </div>
         </div>
@@ -282,6 +379,13 @@ function MapPage() {
             >
               <DollarSign size={16} />
               <span>Sellers</span>
+            </button>
+            <button
+              className={`filter-toggle ${filters.items ? 'active items' : ''}`}
+              onClick={() => setFilters(f => ({ ...f, items: !f.items }))}
+            >
+              <Package size={16} />
+              <span>Items</span>
             </button>
           </div>
 
@@ -319,13 +423,21 @@ function MapPage() {
                 <span className="legend-marker seller"></span>
                 <span>Sellers</span>
               </div>
+              <div className="legend-item">
+                <span className="legend-marker sell"></span>
+                <span>For Sale</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-marker donate"></span>
+                <span>Donations</span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Showing count */}
         <div className="showing-count">
-          Showing <strong>{filteredUsers.length}</strong> users on the map
+          Showing <strong>{allMapMarkers.length}</strong> markers on the map
         </div>
       </div>
 
@@ -407,7 +519,7 @@ function MapPage() {
           color: #f59e0b;
         }
 
-        .stat-card.total svg {
+        .stat-card.items svg {
           background: rgba(139, 92, 246, 0.1);
           color: #8b5cf6;
         }
@@ -479,6 +591,12 @@ function MapPage() {
           background: rgba(245, 158, 11, 0.1);
           border-color: #f59e0b;
           color: #f59e0b;
+        }
+
+        .filter-toggle.active.items {
+          background: rgba(139, 92, 246, 0.1);
+          border-color: #8b5cf6;
+          color: #8b5cf6;
         }
 
         .city-filter {
@@ -563,6 +681,14 @@ function MapPage() {
 
         .legend-marker.seller {
           background: #f59e0b;
+        }
+
+        .legend-marker.sell {
+          background: #8b5cf6;
+        }
+
+        .legend-marker.donate {
+          background: #ec4899;
         }
 
         /* Showing count */

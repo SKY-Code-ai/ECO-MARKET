@@ -25,6 +25,7 @@ import EliteSellerPage from './pages/EliteSellerPage'
 import UserProfilePage from './pages/UserProfilePage'
 import MyOrdersPage from './pages/MyOrdersPage'
 import MapPage from './pages/MapPage'
+import TutorialPage from './pages/TutorialPage'
 
 
 // Protected Route Component
@@ -284,9 +285,26 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          <Route 
+            path="/learn" 
+            element={
+              <ProtectedRoute>
+                <TutorialPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/tutorial" 
+            element={
+              <ProtectedRoute>
+                <TutorialPage />
+              </ProtectedRoute>
+            } 
+          />
 
           {/* Catch all - redirect to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
+
         </Routes>
       </main>
 

@@ -23,7 +23,8 @@ import {
   DollarSign,
   ShoppingBag,
   Plus,
-  MapPin
+  MapPin,
+  BookOpen
 } from 'lucide-react'
 
 function Navbar() {
@@ -273,6 +274,8 @@ function Navbar() {
             <MapPin size={20} />
             <span>Map</span>
           </Link>
+
+
         </div>
 
         {/* Right Section */}
@@ -396,6 +399,14 @@ function Navbar() {
                 >
                   <Users size={18} />
                   <span>Community</span>
+                </Link>
+                <Link 
+                  to="/tutorial" 
+                  className="profile-menu-item"
+                  onClick={() => setShowProfileMenu(false)}
+                >
+                  <BookOpen size={18} />
+                  <span>Tutorial</span>
                 </Link>
 
                 <div className="profile-menu-divider"></div>
@@ -621,13 +632,28 @@ function Navbar() {
           box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
         }
 
+        .learn-link {
+          background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+          color: white !important;
+          font-weight: 600;
+        }
+
+        .learn-link:hover {
+          background: linear-gradient(135deg, #7c3aed, #6d28d9);
+          color: white !important;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
         .navbar-right {
           display: flex;
           align-items: center;
           gap: var(--space-2);
+          flex-shrink: 0;
         }
 
         .nav-btn {
+
           width: 44px;
           height: 44px;
           border-radius: var(--radius-full);

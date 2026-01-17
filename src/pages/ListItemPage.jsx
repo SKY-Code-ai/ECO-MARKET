@@ -111,9 +111,37 @@ function ListItemPage() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    
+    // Save item to localStorage for map display
+    const newItem = {
+      id: Date.now(),
+      type: 'sell',
+      name: formData.productName,
+      category: formData.category,
+      price: parseFloat(formData.price) || 0,
+      condition: formData.condition,
+      location: formData.location,
+      description: formData.description,
+      isVintage: formData.isVintage,
+      isNegotiable: formData.isNegotiable,
+      quantity: parseInt(formData.quantity) || 1,
+      image: previewImages[0] || null,
+      createdAt: new Date().toISOString(),
+      user: {
+        name: user?.name || 'Anonymous',
+        avatar: '👤'
+      }
+    }
+    
+    // Get existing listings and add new one
+    const existingListings = JSON.parse(localStorage.getItem('eco_market_listings') || '[]')
+    existingListings.push(newItem)
+    localStorage.setItem('eco_market_listings', JSON.stringify(existingListings))
+    
     addEcoPoints(30)
     setSubmitted(true)
   }
+
 
   const removeImage = (index) => {
     setPreviewImages(prev => prev.filter((_, i) => i !== index))
